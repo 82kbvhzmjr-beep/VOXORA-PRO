@@ -1,0 +1,50 @@
+name: Compilar Vocodex Pro para Mac
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    name: Build macOS Universal
+    runs-on: macos-latest
+
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Configurar CMake
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET="11.0"
+
+      - name: Compilar Vocodex Pro
+        run: cmake --build build --config Release --parallel 4
+
+      - name: Preparar paquete
+        shell: bash
+        run: |
+          set -e
+          rm -rf out
+          mkdir -p out/Vocodex-Pro
+
+          cp -R build/VocodexPro_artefacts/Release/VST3/VocodexPro.vst3 out/Vocodex-Pro/
+          cp -R build/VocodexPro_artefacts/Release/AU/VocodexPro.component out/Vocodex-Pro/
+          cp installer/Instalar.command out/Vocodex-Pro/
+          chmod +x out/Vocodex-Pro/Instalar.command
+
+          codesign --force --deep -s - out/Vocodex-Pro/VocodexPro.vst3
+          codesign --force --deep -s - out/Vocodex-Pro/VocodexPro.component
+
+          cd out
+          ditto -c -k --keepParent Vocodex-Pro ../Vocodex-Pro-Mac.zip
+
+      - name: Subir Vocodex Pro
+        uses: actions/upload-artifact@v4
+        with:
+          name: Vocodex-Pro-Mac
+          path: Vocodex-Pro-Mac.zip
+          if-no-files-found: error
