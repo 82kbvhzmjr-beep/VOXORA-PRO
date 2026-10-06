@@ -47,4 +47,3 @@ jobs:
         with:
           name: Vocodex-Pro-Mac
           path: Vocodex-Pro-Mac.zip
-          if-no-files-found: error
